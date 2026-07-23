@@ -18,10 +18,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/og-default.png'],
   },
-  icons: {
-    icon: '/logo-new.png',
-    apple: '/logo-new.png',
-  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
