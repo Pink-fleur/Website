@@ -40,11 +40,13 @@ export default function ScrollEffects() {
       return cleanup
     }
 
+    const reveal = (target: HTMLElement) => target.classList.add('is-visible')
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return
-          entry.target.classList.add('is-visible')
+          reveal(entry.target as HTMLElement)
           observer.unobserve(entry.target)
         })
       },
@@ -54,9 +56,28 @@ export default function ScrollEffects() {
       }
     )
 
-    targets.forEach((target) => observer.observe(target))
+    targets.forEach((target) => {
+      // Reveal anything already on screen immediately instead of waiting on
+      // the observer's first (async) callback — on some mobile browsers that
+      // callback can be delayed until the next touch/click, which left
+      // above-the-fold content (e.g. the shop grid) invisible until tapped.
+      const rect = target.getBoundingClientRect()
+      const alreadyInView = rect.top < window.innerHeight && rect.bottom > 0
+      if (alreadyInView) {
+        reveal(target)
+        return
+      }
+      observer.observe(target)
+    })
+
+    // Safety net: never let content stay invisible indefinitely if the
+    // observer never fires for some reason.
+    const failsafe = window.setTimeout(() => {
+      targets.forEach(reveal)
+    }, 1500)
 
     return () => {
+      window.clearTimeout(failsafe)
       observer.disconnect()
       cleanup()
     }
