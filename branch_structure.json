@@ -1,0 +1,21 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "fix-cache",
+    "fix-product-visibility",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "fix-cache": "main",
+    "fix-product-visibility": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "fix-cache",
+    "fix-product-visibility",
+    "origin"
+  ]
+}

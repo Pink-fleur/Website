@@ -12,11 +12,15 @@ export async function shopifyFetch<T>({
   query,
   variables,
   cache = 'force-cache',
+  revalidate = 60,
   tags,
 }: {
   query: string
   variables?: Record<string, unknown>
   cache?: RequestCache
+  // Seconds before cached Shopify data is refetched. Without this, 'force-cache'
+  // keeps the response forever and price/stock edits in Shopify never show up.
+  revalidate?: number
   tags?: string[]
 }): Promise<T> {
   if (!SHOPIFY_STORE_DOMAIN) {
@@ -37,7 +41,7 @@ export async function shopifyFetch<T>({
     headers,
     body: JSON.stringify({ query, variables }),
     cache,
-    next: tags ? { tags } : undefined,
+    next: cache === 'no-store' ? undefined : { revalidate, tags },
   })
 
   if (!res.ok) {
