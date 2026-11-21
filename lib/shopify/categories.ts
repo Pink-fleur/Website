@@ -7,6 +7,13 @@ export const PRODUCT_TYPE_CATEGORIES = ['Shirts', 'Dresses', 'Scarves', 'Ready-t
 // ("frontpage" is Shopify's auto-created "Home page" collection).
 export const HIDDEN_COLLECTION_HANDLES = new Set(['frontpage'])
 
+// A product belongs to the One Million Scarves (1MS) campaign if it's tagged "1MS"
+// in Shopify or sits in one of the One Million Scarf collections.
+export function isOneMillionScarfProduct(product: Scarf) {
+  if (product.tags?.some((t) => normalizeCategory(t) === '1ms')) return true
+  return product.collections?.nodes.some((c) => c.handle.startsWith('one-million-scarf')) ?? false
+}
+
 // "Ready To Wear", "ready-to-wear" and "Ready to wear" all compare equal.
 export function normalizeCategory(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '')

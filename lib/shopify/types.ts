@@ -24,6 +24,7 @@ export interface Scarf {
   title: string
   description: string
   productType?: string
+  tags?: string[]
   collections?: { nodes: CollectionSummary[] }
   variants: { nodes: ScarfVariant[] }
   priceRange: { minVariantPrice: Money; maxVariantPrice: Money }

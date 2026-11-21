@@ -17,11 +17,11 @@ const featuredCollections = [
   },
   {
     title: 'Dresses',
-    image: '/dress.jpeg',
+    image: '/new-dress.jpeg',
   },
   {
     title: 'Scarves',
-    image: '/images/scarf-mocks/new1.png',
+    image: '/new-scarves.jpeg',
   },
   {
     title: 'Ready-to-Wear',
