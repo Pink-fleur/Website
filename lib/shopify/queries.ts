@@ -5,6 +5,9 @@ export const PRODUCT_CORE_FRAGMENT = `
     title
     description
     productType
+    collections(first: 20) {
+      nodes { handle title }
+    }
     priceRange {
       minVariantPrice { amount currencyCode }
       maxVariantPrice { amount currencyCode }
@@ -30,6 +33,14 @@ export const GET_PRODUCTS_QUERY = `
     products(first: $first, after: $after, query: $query) {
       nodes { ...ProductCoreFragment }
       pageInfo { hasNextPage endCursor }
+    }
+  }
+`
+
+export const GET_COLLECTIONS_QUERY = `
+  query GetCollections($first: Int!) {
+    collections(first: $first, sortKey: TITLE) {
+      nodes { handle title }
     }
   }
 `
