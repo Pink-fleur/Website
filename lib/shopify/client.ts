@@ -4,6 +4,10 @@ const SHOPIFY_STOREFRONT_TOKEN =
   process.env.SHOPIFY_STOREFRONT_TOKEN ?? process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN ?? ''
 const SHOPIFY_API_VERSION = '2024-10'
 
+// Added to every Shopify fetch so one webhook (/api/shopify/catalog) can refresh
+// all Shopify-backed pages at once.
+export const SHOPIFY_CACHE_TAG = 'shopify'
+
 export function hasShopifyStorefrontConfig() {
   return Boolean(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_TOKEN)
 }
@@ -41,7 +45,7 @@ export async function shopifyFetch<T>({
     headers,
     body: JSON.stringify({ query, variables }),
     cache,
-    next: cache === 'no-store' ? undefined : { revalidate, tags },
+    next: cache === 'no-store' ? undefined : { revalidate, tags: [SHOPIFY_CACHE_TAG, ...(tags ?? [])] },
   })
 
   if (!res.ok) {

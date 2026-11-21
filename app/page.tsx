@@ -17,7 +17,7 @@ const featuredCollections = [
   },
   {
     title: 'Dresses',
-    image: '/new-dress.jpeg',
+    image: '/images/new-dress-1.jpeg',
   },
   {
     title: 'Scarves',
@@ -25,7 +25,7 @@ const featuredCollections = [
   },
   {
     title: 'Ready-to-Wear',
-    image: '/read-to-wear.jpeg',
+    image: '/new-dress.jpeg',
   },
 ]
 
