@@ -1,0 +1,87 @@
+name: PR checks
+
+# Runs on every pull request into main (and on pushes to main) so security
+# and build problems are caught before merging — not after deploying to Hostinger.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify package signatures
+        run: npm audit signatures
+
+      # Blocks the merge: any CRITICAL vulnerability fails the check.
+      - name: Fail on critical vulnerabilities
+        run: npm audit --audit-level=critical
+
+      # Informational only: lists HIGH issues in the run summary without failing.
+      # (Remaining highs today are in Sanity CLI / Jest tooling, not the live site.)
+      # Once those are cleared, change `critical` above to `high` and delete this step.
+      - name: Report high vulnerabilities (non-blocking)
+        if: always()
+        continue-on-error: true
+        run: |
+          {
+            echo "## npm audit (high and above)"
+            echo '```'
+            npm audit --audit-level=high || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-and-test:
+    name: Lint, typecheck, test & build
+    runs-on: ubuntu-latest
+    env:
+      # Optional: add these as repository secrets for a build against real data.
+      # Without them the build still succeeds using the app's built-in fallbacks.
+      SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+      SHOPIFY_STOREFRONT_TOKEN: ${{ secrets.SHOPIFY_STOREFRONT_TOKEN }}
+      NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+      NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build

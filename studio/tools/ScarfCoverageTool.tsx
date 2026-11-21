@@ -31,9 +31,8 @@ export default function ScarfCoverageTool() {
   const [showUnlinkedOnly, setShowUnlinkedOnly] = useState(false)
 
   useEffect(() => {
+    // `loading` starts true and `error` starts null, so no reset is needed here.
     let cancelled = false
-    setLoading(true)
-    setError(null)
 
     Promise.all([
       fetch('/api/studio/scarf-coverage').then(async (res) => {

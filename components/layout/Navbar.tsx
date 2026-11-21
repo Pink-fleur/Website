@@ -44,9 +44,13 @@ export default function Navbar() {
     return () => window.clearInterval(interval)
   }, [totalQuantity, cartIconRef])
 
-  useEffect(() => {
+  // Close the mobile menu when the route changes (adjusting state during render
+  // instead of in an effect avoids an extra cascading render).
+  const [lastPathname, setLastPathname] = useState(pathname)
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname)
     setOpen(false)
-  }, [pathname])
+  }
 
   function isActiveLink(href: string) {
     if (href === '/') {
