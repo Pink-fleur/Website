@@ -7,22 +7,10 @@ import {
   getOrderCurrency,
   type ShopifyOrderPayload,
 } from '@/lib/shopify/order-funding'
+import { verifyShopifyHmac } from '@/lib/shopify/webhook'
 import type { Beneficiary } from '@/lib/sanity/types'
 
 export const runtime = 'nodejs'
-
-function verifyShopifyHmac(rawBody: string, hmacHeader: string | null) {
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET
-  if (!secret || !hmacHeader) return false
-
-  const digest = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64')
-  const digestBuffer = Buffer.from(digest, 'base64')
-  const headerBuffer = Buffer.from(hmacHeader, 'base64')
-
-  if (digestBuffer.length !== headerBuffer.length) return false
-
-  return crypto.timingSafeEqual(digestBuffer, headerBuffer)
-}
 
 function getReceiptId(webhookId: string) {
   return `shopifyWebhookReceipt.${webhookId.replace(/[^a-zA-Z0-9_.-]/g, '-')}`
