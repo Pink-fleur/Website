@@ -1,13 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { PageInfo, Scarf } from '@/lib/shopify/types'
+import type { Scarf } from '@/lib/shopify/types'
+import { normalizeCategory, productMatchesCategory } from '@/lib/shopify/categories'
 import type { Beneficiary } from '@/lib/sanity/types'
 import ScarfGrid from '@/components/1ms/ScarfGrid'
 
 interface Props {
   products: Scarf[]
-  initialPageInfo: PageInfo
   beneficiaries: Beneficiary[]
   categories: string[]
   initialCategory?: string
@@ -16,12 +16,11 @@ interface Props {
 
 function findCategory(categories: string[], value?: string) {
   if (!value) return undefined
-  return categories.find((c) => c.toLowerCase() === value.toLowerCase())
+  return categories.find((c) => normalizeCategory(c) === normalizeCategory(value))
 }
 
 export default function ShopClient({
   products,
-  initialPageInfo,
   beneficiaries,
   categories,
   initialCategory,
@@ -29,42 +28,22 @@ export default function ShopClient({
 }: Props) {
   const [category, setCategory] = useState(findCategory(categories, initialCategory) ?? 'All')
   const [query, setQuery] = useState(initialQuery ?? '')
-  const [loadedProducts, setLoadedProducts] = useState(products)
-  const [pageInfo, setPageInfo] = useState(initialPageInfo)
-  const [loadingMore, setLoadingMore] = useState(false)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return loadedProducts.filter((product) => {
-      const productCategory = (product.productType || 'Scarves').toLowerCase()
-      if (category !== 'All' && productCategory !== category.toLowerCase()) return false
+    return products.filter((product) => {
+      if (category !== 'All' && !productMatchesCategory(product, category)) return false
       if (!q) return true
       return (
         product.title.toLowerCase().includes(q) ||
         product.description.toLowerCase().includes(q)
       )
     })
-  }, [loadedProducts, category, query])
+  }, [products, category, query])
 
   function clearFilters() {
     setCategory('All')
     setQuery('')
-  }
-
-  async function loadMore() {
-    if (!pageInfo.hasNextPage || loadingMore) return
-    setLoadingMore(true)
-    try {
-      const res = await fetch(`/api/products?after=${encodeURIComponent(pageInfo.endCursor ?? '')}`)
-      if (!res.ok) throw new Error('Unable to load more products')
-      const data = (await res.json()) as { products: Scarf[]; pageInfo: PageInfo }
-      setLoadedProducts((prev) => [...prev, ...data.products])
-      setPageInfo(data.pageInfo)
-    } catch {
-      // Best-effort: leave pageInfo untouched so the button stays available to retry.
-    } finally {
-      setLoadingMore(false)
-    }
   }
 
   return (
@@ -123,17 +102,6 @@ export default function ShopClient({
         <ScarfGrid scarves={filtered} beneficiaries={beneficiaries} />
       )}
 
-      {pageInfo.hasNextPage && (
-        <div className="bg-white pt-2 pb-20 flex justify-center">
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="px-10 py-3.5 bg-black text-white text-xs tracking-widest uppercase font-body font-medium hover:bg-[#E79489] hover:text-black transition-colors disabled:opacity-50"
-          >
-            {loadingMore ? 'Loading…' : 'Load more'}
-          </button>
-        </div>
-      )}
     </>
   )
 }

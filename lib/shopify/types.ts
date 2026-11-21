@@ -24,9 +24,15 @@ export interface Scarf {
   title: string
   description: string
   productType?: string
+  collections?: { nodes: CollectionSummary[] }
   variants: { nodes: ScarfVariant[] }
   priceRange: { minVariantPrice: Money; maxVariantPrice: Money }
   images: { nodes: ShopifyImage[] }
+}
+
+export interface CollectionSummary {
+  handle: string
+  title: string
 }
 
 export interface PageInfo {

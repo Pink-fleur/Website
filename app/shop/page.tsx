@@ -1,15 +1,19 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { shopifyFetch } from '@/lib/shopify/client'
-import { GET_PRODUCTS_QUERY } from '@/lib/shopify/queries'
+import { GET_COLLECTIONS_QUERY, GET_PRODUCTS_QUERY } from '@/lib/shopify/queries'
 import { sanityClient } from '@/lib/sanity/client'
 import { beneficiariesQuery } from '@/lib/sanity/queries'
-import type { PageInfo, Scarf } from '@/lib/shopify/types'
+import type { CollectionSummary, PageInfo, Scarf } from '@/lib/shopify/types'
 import type { Beneficiary } from '@/lib/sanity/types'
 import ShopifyErrorBoundary from '@/components/shared/ShopifyErrorBoundary'
 import ShopClient from '@/components/shop/ShopClient'
+import { buildCategories } from '@/lib/shopify/categories'
 
-const PAGE_SIZE = 12
+// Shopify allows up to 250 per request; the catalog is small enough to load in full
+// so category filters always see every product.
+const PAGE_SIZE = 250
+const MAX_PAGES = 10
 
 export const metadata: Metadata = {
   title: 'Shop All Collections — Pink Fleur',
@@ -19,33 +23,49 @@ export const metadata: Metadata = {
 
 export const revalidate = 30
 
-const CATEGORIES = ['Shirts', 'Dresses', 'Scarves', 'Ready-to-Wear']
+async function fetchAllProducts() {
+  const all: Scarf[] = []
+  let after: string | null = null
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const data: { products: { nodes: Scarf[]; pageInfo: PageInfo } } = await shopifyFetch({
+      query: GET_PRODUCTS_QUERY,
+      variables: { first: PAGE_SIZE, after },
+      tags: ['products'],
+    })
+    all.push(...data.products.nodes)
+    if (!data.products.pageInfo.hasNextPage) break
+    after = data.products.pageInfo.endCursor
+  }
+  return all
+}
 
 async function getData() {
-  const [products, beneficiaries] = await Promise.allSettled([
-    shopifyFetch<{ products: { nodes: Scarf[]; pageInfo: PageInfo } }>({
-      query: GET_PRODUCTS_QUERY,
-      variables: { first: PAGE_SIZE },
-      tags: ['products'],
-    }),
+  const [products, beneficiaries, collections] = await Promise.allSettled([
+    fetchAllProducts(),
     sanityClient.fetch<Beneficiary[]>(beneficiariesQuery),
+    shopifyFetch<{ collections: { nodes: CollectionSummary[] } }>({
+      query: GET_COLLECTIONS_QUERY,
+      variables: { first: 100 },
+      tags: ['collections'],
+    }),
   ])
-
-  const productList = products.status === 'fulfilled' ? products.value.products.nodes : []
-  const pageInfo: PageInfo =
-    products.status === 'fulfilled' ? products.value.products.pageInfo : { hasNextPage: false, endCursor: null }
 
   if (products.status === 'rejected') {
     console.log('[shop] Shopify fetch error:', products.reason)
   }
+  if (collections.status === 'rejected') {
+    console.log('[shop] Shopify collections fetch error:', collections.reason)
+  }
+
+  const productList = products.status === 'fulfilled' ? products.value : []
+  const collectionList = collections.status === 'fulfilled' ? collections.value.collections.nodes : []
 
   return {
     products: productList,
-    pageInfo,
     beneficiaries: beneficiaries.status === 'fulfilled' ? beneficiaries.value : [],
+    categories: buildCategories(productList, collectionList),
   }
 }
-
 
 interface Props {
   searchParams: Promise<{ category?: string | string[]; q?: string | string[] }>
@@ -59,7 +79,7 @@ export default async function ShopPage({ searchParams }: Props) {
   const params = await searchParams
   const initialCategory = first(params.category)
   const initialQuery = first(params.q)
-  const { products, pageInfo, beneficiaries } = await getData()
+  const { products, beneficiaries, categories } = await getData()
 
   return (
     <main className="pt-16">
@@ -87,9 +107,8 @@ export default async function ShopPage({ searchParams }: Props) {
       <ShopifyErrorBoundary>
         <ShopClient
           products={products}
-          initialPageInfo={pageInfo}
           beneficiaries={beneficiaries}
-          categories={CATEGORIES}
+          categories={categories}
           initialCategory={initialCategory}
           initialQuery={initialQuery}
         />
