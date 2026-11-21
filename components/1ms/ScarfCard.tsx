@@ -75,7 +75,7 @@ export default function ScarfCard({ scarf, beneficiaryNames = [] }: Props) {
             href={scarfHref}
             className="text-xs tracking-widest uppercase text-[#E79489] font-body font-medium hover:underline"
           >
-            View scarf →
+            View details →
           </Link>
         </div>
         <button

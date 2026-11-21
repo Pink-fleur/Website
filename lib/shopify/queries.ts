@@ -5,6 +5,7 @@ export const PRODUCT_CORE_FRAGMENT = `
     title
     description
     productType
+    tags
     collections(first: 20) {
       nodes { handle title }
     }

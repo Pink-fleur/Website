@@ -7,6 +7,7 @@ import type { Scarf } from '@/lib/shopify/types'
 import type { Beneficiary } from '@/lib/sanity/types'
 import { formatMoney } from '@/lib/shopify/format'
 import { useCart, MAX_LINE_QUANTITY } from '@/lib/cart/context'
+import { isOneMillionScarfProduct } from '@/lib/shopify/categories'
 
 interface Props {
   scarf: Scarf
@@ -19,6 +20,7 @@ export default function ScarfDetailClient({ scarf, linkedBeneficiaries }: Props)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const imageWrapRef = useRef<HTMLDivElement>(null)
+  const isOneMillionScarf = isOneMillionScarfProduct(scarf)
 
   const image = scarf.images.nodes[0]
   const selectedVariant = scarf.variants.nodes.find((v) => v.id === selectedVariantId) ?? scarf.variants.nodes[0]
@@ -93,7 +95,9 @@ export default function ScarfDetailClient({ scarf, linkedBeneficiaries }: Props)
             </div>
           )}
 
-          {/* Who this scarf supports (read-only, auto-split — no buyer selection) */}
+          {/* Who this scarf supports (read-only, auto-split — no buyer selection).
+              Only shown for products in the One Million Scarves campaign. */}
+          {(isOneMillionScarf || linkedBeneficiaries.length > 0) && (
           <div className="mb-8 border border-[#F8E8E5] p-5">
             <p className="font-body text-xs tracking-widest uppercase text-[#E79489] mb-3">
               {linkedBeneficiaries.length > 0 ? 'This scarf supports' : 'Your purchase supports'}
@@ -123,6 +127,7 @@ export default function ScarfDetailClient({ scarf, linkedBeneficiaries }: Props)
               </p>
             )}
           </div>
+          )}
 
           {/* Quantity + Add to cart */}
           {selectedVariant?.availableForSale !== false && (
